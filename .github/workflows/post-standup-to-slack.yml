@@ -1,0 +1,38 @@
+name: Post standup minutes to Slack
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "standup/**/*.md"
+      - "!standup/templates/**"
+
+jobs:
+  post-to-slack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect changed standup files
+        id: changed
+        run: |
+          files=$(git diff --name-only --diff-filter=d ${{ github.event.before }} HEAD -- 'standup/**/*.md' | grep -v 'standup/templates/' || true)
+          echo "files<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$files" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Post to Slack
+        if: steps.changed.outputs.files != ''
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL_ID: ${{ secrets.SLACK_CHANNEL_ID }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            echo "Processing: $file"
+            python3 scripts/post_standup_to_slack.py "$file"
+          done <<< "${{ steps.changed.outputs.files }}"
