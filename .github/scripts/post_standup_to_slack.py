@@ -105,6 +105,39 @@ def md_to_slack(text: str) -> str:
     return "\n".join(result).strip()
 
 
+def load_user_map(config_path: str) -> dict[str, str]:
+    """users.yml を読み込み {handle: slack_userid} の辞書を返す。
+
+    PyYAML に依存せず正規表現で簡易パースする。
+    ファイルが存在しない場合は空辞書を返す。
+    """
+    user_map: dict[str, str] = {}
+    if not os.path.isfile(config_path):
+        return user_map
+    with open(config_path, encoding="utf-8") as f:
+        content = f.read()
+    for m in re.finditer(
+        r"^  (\w+):\s*\n\s+slack_userid:\s*\"([^\"]+)\"", content, re.MULTILINE
+    ):
+        user_map[m.group(1)] = m.group(2)
+    return user_map
+
+
+def replace_mentions(text: str, user_map: dict[str, str]) -> str:
+    """@handle を <@SLACK_USER_ID> に置換する。
+
+    マッピングにない handle はそのまま残す。
+    """
+    def _replace(m: re.Match) -> str:
+        handle = m.group(1)
+        slack_id = user_map.get(handle)
+        if slack_id:
+            return f"<@{slack_id}>"
+        return m.group(0)
+
+    return re.sub(r"@(\w+)", _replace, text)
+
+
 def build_github_url(filepath: str) -> str:
     """GitHub 上のファイルへのパーマリンクを生成する。"""
     repo = os.environ.get("GITHUB_REPOSITORY", "")
@@ -129,8 +162,11 @@ def main() -> None:
     date_str = extract_date(filepath)
     thread_ts = find_thread_ts(token, channel, date_str)
 
-    # Markdown → Slack mrkdwn に変換し、GitHub リンクを末尾に付与
+    # Markdown → Slack mrkdwn に変換し、@handle をメンションに置換
     slack_text = md_to_slack(content)
+    config_path = os.path.join(os.path.dirname(__file__), "..", "config", "users.yml")
+    user_map = load_user_map(config_path)
+    slack_text = replace_mentions(slack_text, user_map)
     github_url = build_github_url(filepath)
     if github_url:
         slack_text += f"\n\n<{github_url}|:link: GitHub で見る>"

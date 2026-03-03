@@ -6,7 +6,14 @@ import os
 import unittest
 from unittest.mock import patch, MagicMock
 
-from post_standup_to_slack import extract_date, md_to_slack, find_thread_ts, build_github_url
+from post_standup_to_slack import (
+    extract_date,
+    md_to_slack,
+    find_thread_ts,
+    build_github_url,
+    load_user_map,
+    replace_mentions,
+)
 
 
 class TestExtractDate(unittest.TestCase):
@@ -124,6 +131,66 @@ class TestFindThreadTs(unittest.TestCase):
         oldest = float(params["oldest"])
         latest = float(params["latest"])
         self.assertAlmostEqual(latest - oldest, 86399, delta=1)
+
+
+class TestLoadUserMap(unittest.TestCase):
+    def test_load_valid_file(self):
+        import tempfile
+        content = """users:
+  miyazaki:
+    slack_userid: "U111"
+  shima:
+    slack_userid: "U222"
+"""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as f:
+            f.write(content)
+            f.flush()
+            result = load_user_map(f.name)
+        os.unlink(f.name)
+        self.assertEqual(result, {"miyazaki": "U111", "shima": "U222"})
+
+    def test_missing_file(self):
+        result = load_user_map("/nonexistent/path/users.yml")
+        self.assertEqual(result, {})
+
+
+class TestReplaceMentions(unittest.TestCase):
+    def setUp(self):
+        self.user_map = {
+            "miyazaki": "U111",
+            "shima": "U222",
+            "kent": "U333",
+        }
+
+    def test_single_mention(self):
+        text = "- [ ] @shima: タスクを完了する"
+        result = replace_mentions(text, self.user_map)
+        self.assertEqual(result, "- [ ] <@U222>: タスクを完了する")
+
+    def test_multiple_mentions(self):
+        text = "@miyazaki と @kent で確認"
+        result = replace_mentions(text, self.user_map)
+        self.assertEqual(result, "<@U111> と <@U333> で確認")
+
+    def test_unknown_handle_preserved(self):
+        text = "@unknown: 何かする"
+        result = replace_mentions(text, self.user_map)
+        self.assertEqual(result, "@unknown: 何かする")
+
+    def test_no_mentions(self):
+        text = "メンションなしのテキスト"
+        result = replace_mentions(text, self.user_map)
+        self.assertEqual(result, "メンションなしのテキスト")
+
+    def test_name_san_not_replaced(self):
+        text = "miyazaki-san が報告した"
+        result = replace_mentions(text, self.user_map)
+        self.assertEqual(result, "miyazaki-san が報告した")
+
+    def test_empty_user_map(self):
+        text = "@miyazaki: タスク"
+        result = replace_mentions(text, {})
+        self.assertEqual(result, "@miyazaki: タスク")
 
 
 if __name__ == "__main__":
