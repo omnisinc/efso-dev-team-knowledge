@@ -133,7 +133,7 @@ def main() -> None:
     slack_text = md_to_slack(content)
     github_url = build_github_url(filepath)
     if github_url:
-        slack_text += f"\n\n<{github_url}|:github: GitHub で見る>"
+        slack_text += f"\n\n<{github_url}|:link: GitHub で見る>"
 
     slack_api(
         "chat.postMessage",
