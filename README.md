@@ -19,9 +19,12 @@ standup/
 
 ### 議事録の作成
 
-1. Google Meet の Gemini 自動書き起こしをコピー
-2. Claude に渡すと `.claude/rules/standup-minutes.md` のルールに従って議事録を生成
-3. `standup/YYYY/MM/YYYY-MM-DD.md` に保存される
+今のところは一部手動です
+
+1. Google Meet の Gemini 自動書き起こしをコピーし、ローカルのこのリポジトリで Claude に渡す
+2. Claude がルールとテンプレートに従って議事録を生成。 `standup/YYYY/MM/YYYY-MM-DD.md` に保存される
+3. 内容を確認して必要があれば手動で修正
+4. main に push すると actions が発火して slack SU スレに議事録を通知
 
 ### 議事録の検索
 
@@ -32,5 +35,4 @@ standup/
 ## TODO
 
 - [ ] JIRA 連携: チケット番号から JIRA へのリンクを自動で紐づける
-- [ ] Slack 連携: GitHub Actions から議事録作成時に Slack へ自動ポスト
 - [ ] 関連プロジェクト連携: 関連リポジトリの情報（PR・Issue 等）を議事録から参照できるようにする
