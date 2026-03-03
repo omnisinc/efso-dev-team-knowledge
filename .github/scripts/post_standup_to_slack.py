@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
-"""Post standup minutes to the corresponding Slack thread.
+"""standup 議事録を対応する Slack スレッドに投稿する。
 
-Usage:
+使い方:
     python3 scripts/post_standup_to_slack.py standup/2026/03/2026-03-02.md
 
-Required environment variables:
+必要な環境変数:
     SLACK_BOT_TOKEN   - Bot User OAuth Token (xoxb-...)
-    SLACK_CHANNEL_ID  - Target channel ID (C0XXXXXXX)
-    GITHUB_REPOSITORY - owner/repo (set by Actions)
-    GITHUB_SHA        - commit SHA (set by Actions)
+    SLACK_CHANNEL_ID  - 投稿先チャンネル ID (C0XXXXXXX)
+    GITHUB_REPOSITORY - owner/repo (Actions が自動設定)
+    GITHUB_SHA        - コミット SHA (Actions が自動設定)
+
+処理フロー:
+    1. ファイルパスから日付を抽出
+    2. conversations.history で対象日 (JST) のメッセージを取得
+    3. 「今日の SU スレです」を含むリマインダーメッセージの ts を特定
+    4. Markdown → Slack mrkdwn に変換し、スレッドに返信として投稿
 """
 
 import json
@@ -24,7 +30,7 @@ JST = timezone(timedelta(hours=9))
 
 
 def slack_api(method: str, token: str, params: dict) -> dict:
-    """Call a Slack Web API method and return the parsed response."""
+    """Slack Web API を呼び出してレスポンスを返す。ok=false の場合は例外。"""
     url = f"https://slack.com/api/{method}"
     data = json.dumps(params).encode()
     req = urllib.request.Request(
@@ -43,7 +49,7 @@ def slack_api(method: str, token: str, params: dict) -> dict:
 
 
 def extract_date(filepath: str) -> str:
-    """Extract YYYY-MM-DD from a standup file path."""
+    """ファイルパスから YYYY-MM-DD を抽出する。"""
     m = re.search(r"(\d{4}-\d{2}-\d{2})\.md$", filepath)
     if not m:
         raise ValueError(f"Cannot extract date from path: {filepath}")
@@ -51,12 +57,13 @@ def extract_date(filepath: str) -> str:
 
 
 def find_thread_ts(token: str, channel: str, date_str: str) -> str:
-    """Find the SU reminder thread for the given date (JST).
+    """対象日 (JST) の SU リマインダースレッドの ts を返す。
 
-    Searches the channel history for a message containing '今日の SU スレです'
-    posted on the target date in JST.
+    Bot が毎朝投稿する「今日の SU スレです」を含むメッセージを探す。
+    見つからない場合 (祝日等) は RuntimeError。
     """
     target_date = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=JST)
+    # JST の 00:00:00 〜 23:59:59 を UNIX timestamp に変換
     oldest = target_date.replace(hour=0, minute=0, second=0).timestamp()
     latest = target_date.replace(hour=23, minute=59, second=59).timestamp()
 
@@ -73,6 +80,7 @@ def find_thread_ts(token: str, channel: str, date_str: str) -> str:
 
     for msg in body.get("messages", []):
         text = msg.get("text", "")
+        # 全角スペースの有無どちらにも対応
         if "今日の SU スレです" in text or "今日のSUスレです" in text:
             return msg["ts"]
 
@@ -83,22 +91,22 @@ def find_thread_ts(token: str, channel: str, date_str: str) -> str:
 
 
 def md_to_slack(text: str) -> str:
-    """Convert Markdown to Slack mrkdwn format."""
+    """Markdown の見出しを Slack mrkdwn の太字に変換する。
+
+    リストやチェックボックスはそのまま保持される。
+    """
     lines = text.split("\n")
     result = []
     for line in lines:
-        # ### Sub heading
         line = re.sub(r"^### (.+)$", r"*\1*", line)
-        # ## Section heading
         line = re.sub(r"^## (.+)$", r"\n*\1*", line)
-        # # Title heading
         line = re.sub(r"^# (.+)$", r"*\1*", line)
         result.append(line)
     return "\n".join(result).strip()
 
 
 def build_github_url(filepath: str) -> str:
-    """Build a GitHub permalink for the file."""
+    """GitHub 上のファイルへのパーマリンクを生成する。"""
     repo = os.environ.get("GITHUB_REPOSITORY", "")
     sha = os.environ.get("GITHUB_SHA", "")
     if repo and sha:
@@ -115,14 +123,13 @@ def main() -> None:
     token = os.environ["SLACK_BOT_TOKEN"]
     channel = os.environ["SLACK_CHANNEL_ID"]
 
-    # Read the standup file
     with open(filepath, encoding="utf-8") as f:
         content = f.read()
 
     date_str = extract_date(filepath)
     thread_ts = find_thread_ts(token, channel, date_str)
 
-    # Convert and post
+    # Markdown → Slack mrkdwn に変換し、GitHub リンクを末尾に付与
     slack_text = md_to_slack(content)
     github_url = build_github_url(filepath)
     if github_url:

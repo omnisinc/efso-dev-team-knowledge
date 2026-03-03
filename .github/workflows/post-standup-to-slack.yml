@@ -1,3 +1,10 @@
+# standup 議事録が main に push されたら、同日の Slack SU スレッドに自動投稿する。
+#
+# 前提:
+#   - Bot が対象チャンネルに招待済み
+#   - Secrets に SLACK_BOT_TOKEN, SLACK_CHANNEL_ID が設定済み
+#   - 対象日に「今日の SU スレです」のリマインダーメッセージが存在すること
+
 name: Post standup minutes to Slack
 
 on:
@@ -13,8 +20,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          # before..HEAD の diff に必要
           fetch-depth: 2
 
+      # 変更された議事録ファイルを検出 (削除・テンプレートは除外)
       - name: Detect changed standup files
         id: changed
         run: |
@@ -23,6 +32,7 @@ jobs:
           echo "$files" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
 
+      # 各議事録ファイルを Slack スレッドに投稿
       - name: Post to Slack
         if: steps.changed.outputs.files != ''
         env:
@@ -34,5 +44,5 @@ jobs:
           while IFS= read -r file; do
             [ -z "$file" ] && continue
             echo "Processing: $file"
-            python3 scripts/post_standup_to_slack.py "$file"
+            python3 .github/scripts/post_standup_to_slack.py "$file"
           done <<< "${{ steps.changed.outputs.files }}"
