@@ -1,6 +1,7 @@
 # efso-dev-team-knowledge
 
-EFSO 開発チームのナレッジベース。朝会（standup）の議事録を一元管理する。
+EFSO 開発チームのナレッジベース。  
+今のところは、朝会（standup）の議事録を一元管理するのみ。
 
 ## 構造
 
@@ -19,7 +20,8 @@ standup/
 
 ### 議事録の作成
 
-今のところは一部手動です
+
+今のところは一部手動です && 現状は以下の作業を @ryosukee が手元で動かして main に直接マージしています
 
 1. Google Meet の Gemini 自動書き起こしをコピーし、ローカルのこのリポジトリで Claude に渡す
 2. Claude がルールとテンプレートに従って議事録を生成。 `standup/YYYY/MM/YYYY-MM-DD.md` に保存される
