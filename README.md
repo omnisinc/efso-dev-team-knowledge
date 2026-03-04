@@ -28,6 +28,15 @@ standup/
 3. 内容を確認して必要があれば手動で修正
 4. main に push すると actions が発火して slack SU スレに議事録を通知
 
+### Slack 投稿の手動実行
+
+push トリガーの actions が失敗した場合や、hook の問題で自動投稿できなかった場合は、手動で再投稿できます。
+
+1. GitHub の Actions タブ → 「Post standup to Slack (manual)」を選択
+2. 「Run workflow」をクリックし、日付を `YYYY-MM-DD` 形式で入力して実行
+
+対象日の SU スレ（「今日の SU スレです」のリマインダー投稿）が存在する必要があります。
+
 ### 議事録の検索
 
 - 特定の人の報告 → `### @handle` で grep
