@@ -98,11 +98,14 @@ def md_to_slack(text: str) -> str:
     lines = text.split("\n")
     result = []
     for line in lines:
-        line = re.sub(r"^### (.+)$", r"*\1*", line)
-        line = re.sub(r"^## (.+)$", r"\n*\1*", line)
-        line = re.sub(r"^# (.+)$", r"*\1*", line)
+        line = re.sub(r"^### (.+)$", r"*### \1*", line)
+        line = re.sub(r"^## (.+)$", r"\n*## \1*", line)
+        line = re.sub(r"^# (.+)$", r"*# \1*", line)
         # Markdown link [text](url) → Slack mrkdwn <url|text>
         line = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r"<\2|\1>", line)
+        # List markers: - → • (nested → ◦)
+        line = re.sub(r"^( +)- ", r"\1◦ ", line)
+        line = re.sub(r"^- ", "• ", line)
         result.append(line)
     return "\n".join(result).strip()
 
@@ -161,6 +164,9 @@ def main() -> None:
     with open(filepath, encoding="utf-8") as f:
         content = f.read()
 
+    # 各メンバー報告は Slack では省略し、GitHub リンクに誘導する
+    content = re.split(r"^## 各メンバー報告", content, maxsplit=1, flags=re.MULTILINE)[0]
+
     date_str = extract_date(filepath)
     thread_ts = find_thread_ts(token, channel, date_str)
 
@@ -171,7 +177,7 @@ def main() -> None:
     slack_text = replace_mentions(slack_text, user_map)
     github_url = build_github_url(filepath)
     if github_url:
-        slack_text += f"\n\n<{github_url}|:link: GitHub で見る>"
+        slack_text += f"\n\n<{github_url}|:link: 各メンバー報告など詳細は GitHub で>"
 
     slack_api(
         "chat.postMessage",

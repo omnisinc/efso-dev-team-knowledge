@@ -30,35 +30,30 @@ class TestExtractDate(unittest.TestCase):
 
 class TestMdToSlack(unittest.TestCase):
     def test_h1(self):
-        self.assertIn("*Standup 2026-03-02*", md_to_slack("# Standup 2026-03-02"))
+        self.assertIn("*# Standup 2026-03-02*", md_to_slack("# Standup 2026-03-02"))
 
     def test_h2(self):
         result = md_to_slack("## 全体共有事項")
-        self.assertIn("*全体共有事項*", result)
+        self.assertIn("*## 全体共有事項*", result)
 
     def test_h3(self):
-        self.assertIn("*miyazaki*", md_to_slack("### miyazaki"))
+        self.assertIn("*### miyazaki*", md_to_slack("### miyazaki"))
 
-    def test_list_preserved(self):
+    def test_list_converted_to_bullets(self):
         md = "- item1\n    - nested"
         result = md_to_slack(md)
-        self.assertIn("- item1", result)
-        self.assertIn("    - nested", result)
-
-    def test_checkbox_preserved(self):
-        md = "- [ ] @shima: do something"
-        result = md_to_slack(md)
-        self.assertIn("- [ ] @shima: do something", result)
+        self.assertIn("• item1", result)
+        self.assertIn("    ◦ nested", result)
 
     def test_markdown_link_converted(self):
         md = "- [Notion セッション設計](https://www.notion.so/omnis/login-logout)"
         result = md_to_slack(md)
-        self.assertEqual(result, "- <https://www.notion.so/omnis/login-logout|Notion セッション設計>")
+        self.assertEqual(result, "• <https://www.notion.so/omnis/login-logout|Notion セッション設計>")
 
     def test_markdown_link_inline(self):
         md = "- 詳細は [こちら](https://example.com) を参照"
         result = md_to_slack(md)
-        self.assertEqual(result, "- 詳細は <https://example.com|こちら> を参照")
+        self.assertEqual(result, "• 詳細は <https://example.com|こちら> を参照")
 
     def test_full_document(self):
         md = """# Standup 2026-03-02
@@ -73,11 +68,11 @@ class TestMdToSlack(unittest.TestCase):
 - これまでやったこと:
     - task1"""
         result = md_to_slack(md)
-        self.assertIn("*Standup 2026-03-02*", result)
-        self.assertIn("*参加者*", result)
-        self.assertIn("*miyazaki*", result)
-        self.assertIn("- some topic", result)
-        self.assertIn("    - task1", result)
+        self.assertIn("*# Standup 2026-03-02*", result)
+        self.assertIn("*## 参加者*", result)
+        self.assertIn("*### miyazaki*", result)
+        self.assertIn("• some topic", result)
+        self.assertIn("    ◦ task1", result)
 
 
 class TestBuildGithubUrl(unittest.TestCase):
