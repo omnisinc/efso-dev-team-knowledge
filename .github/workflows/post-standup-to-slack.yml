@@ -20,8 +20,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # before..HEAD の diff に必要
-          fetch-depth: 2
+          # before..HEAD の diff に必要 (複数コミットの push に対応)
+          fetch-depth: 0
 
       # 変更された議事録ファイルを検出 (削除・テンプレートは除外)
       - name: Detect changed standup files
