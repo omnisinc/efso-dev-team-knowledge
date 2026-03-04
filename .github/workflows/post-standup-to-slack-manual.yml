@@ -1,0 +1,42 @@
+# 手動で特定の日付の standup 議事録を Slack に投稿する。
+#
+# 使い方: Actions タブ → "Post standup to Slack (manual)" → Run workflow → 日付を入力
+#
+# 前提: post-standup-to-slack.yml と同じ (Bot 招待済み, Secrets 設定済み, SU スレ存在)
+
+name: Post standup to Slack (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "投稿する議事録の日付 (YYYY-MM-DD)"
+        required: true
+        type: string
+
+jobs:
+  post-to-slack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve file path and post
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_CHANNEL_ID: ${{ secrets.SLACK_CHANNEL_ID }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          date="${{ inputs.date }}"
+          # YYYY-MM-DD → standup/YYYY/MM/YYYY-MM-DD.md
+          year="${date%%-*}"
+          month="$(echo "$date" | cut -d- -f2)"
+          file="standup/${year}/${month}/${date}.md"
+
+          if [ ! -f "$file" ]; then
+            echo "::error::File not found: $file"
+            exit 1
+          fi
+
+          echo "Processing: $file"
+          python3 .github/scripts/post_standup_to_slack.py "$file"
