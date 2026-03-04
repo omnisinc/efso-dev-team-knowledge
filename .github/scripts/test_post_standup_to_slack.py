@@ -50,6 +50,16 @@ class TestMdToSlack(unittest.TestCase):
         result = md_to_slack(md)
         self.assertIn("- [ ] @shima: do something", result)
 
+    def test_markdown_link_converted(self):
+        md = "- [Notion セッション設計](https://www.notion.so/omnis/login-logout)"
+        result = md_to_slack(md)
+        self.assertEqual(result, "- <https://www.notion.so/omnis/login-logout|Notion セッション設計>")
+
+    def test_markdown_link_inline(self):
+        md = "- 詳細は [こちら](https://example.com) を参照"
+        result = md_to_slack(md)
+        self.assertEqual(result, "- 詳細は <https://example.com|こちら> を参照")
+
     def test_full_document(self):
         md = """# Standup 2026-03-02
 

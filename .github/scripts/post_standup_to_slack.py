@@ -101,6 +101,8 @@ def md_to_slack(text: str) -> str:
         line = re.sub(r"^### (.+)$", r"*\1*", line)
         line = re.sub(r"^## (.+)$", r"\n*\1*", line)
         line = re.sub(r"^# (.+)$", r"*\1*", line)
+        # Markdown link [text](url) → Slack mrkdwn <url|text>
+        line = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r"<\2|\1>", line)
         result.append(line)
     return "\n".join(result).strip()
 
