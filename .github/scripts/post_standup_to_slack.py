@@ -177,7 +177,7 @@ def main() -> None:
     slack_text = replace_mentions(slack_text, user_map)
     github_url = build_github_url(filepath)
     if github_url:
-        slack_text += f"\n\n<{github_url}|:link: 各メンバー報告など詳細は GitHub で>"
+        slack_text += f"\n\n<{github_url}|:link: 各メンバー報告・参加者など詳細は GitHub で>"
 
     slack_api(
         "chat.postMessage",

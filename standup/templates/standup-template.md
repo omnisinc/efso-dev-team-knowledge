@@ -1,8 +1,5 @@
 # Standup YYYY-MM-DD
 
-## 参加者
-- name-san, name-san
-
 ## 全体共有事項
 特になし
 
@@ -27,3 +24,8 @@
     - xxx
 - ブロッカーや相談:
     - 特になし
+
+---
+
+## 参加者
+- name-san, name-san
