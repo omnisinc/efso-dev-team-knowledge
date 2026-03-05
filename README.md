@@ -7,25 +7,26 @@ EFSO 開発チームのナレッジベース。
 
 ```
 standup/
-  templates/
-    standup-template.md   # 議事録テンプレート
   YYYY/MM/
-    YYYY-MM-DD.md         # 各回の議事録
+    YYYY-MM-DD.md                # 各回の議事録
 .claude/
+  skills/standup/
+    SKILL.md                     # 議事録スキル（作成〜フィードバック反映）
+    standup-template.md          # 議事録テンプレート
   rules/
-    standup-minutes.md    # 議事録作成ルール
+    standup-minutes.md           # 議事録作成ルール
+    misrecognition-dict.md       # 誤認識辞書・ドメイン用語集
 ```
 
 ## 使い方
 
 ### 議事録の作成
 
+Claude Code の `/standup` スキルで作成します。現状は @ryosukee が手元で実行して main に直接マージしています。
 
-今のところは一部手動です && 現状は以下の作業を @ryosukee が手元で動かして main に直接マージしています
-
-1. Google Meet の Gemini 自動書き起こしをコピーし、ローカルのこのリポジトリで Claude に渡す
-2. Claude がルールとテンプレートに従って議事録を生成。 `standup/YYYY/MM/YYYY-MM-DD.md` に保存される
-3. 内容を確認して必要があれば手動で修正
+1. Google Meet の Gemini 書き起こし/まとめメモをコピーし、`/standup` に渡す
+2. Claude がルール・辞書・テンプレートに従って議事録を生成。`standup/YYYY/MM/YYYY-MM-DD.md` に保存される
+3. 内容を確認して必要があれば手修正。修正内容は Claude が分析し、ルール・辞書の改善を提案する
 4. main に push すると actions が発火して slack SU スレに議事録を通知
 
 ### Slack 投稿の仕組み
